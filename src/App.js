@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../node_modules/todomvc-app-css/index.css';
-
+const serializedLocalstorage = JSON.parse(localStorage.getItem('todoJSON'));
+const initialTodosState = !!serializedLocalstorage ? serializedLocalstorage : [] ;
+/*
+useRef(() => {
+	const addTodoInput = useRef("type here");
+	console.log("the Ref: ", addTodoInput);
+});
+*/
 const SetupTodos = () => {
-	console.log('Setting up todos')
-	const [todoList, updateTodoList] = useState([]);
+	const [todoList, updateTodoList] = useState(initialTodosState);
+	useEffect(() => {
+		localStorage.setItem('todoJSON', JSON.stringify(todoList));
+	});
+
 	const filterEnum = {
 		'ALL': 'all',
 		'COMPLETED': 'completed',
@@ -22,13 +32,14 @@ const SetupTodos = () => {
 			}
 		]);
 	}
+
+	//TODO: following functions contains a pattern that could be refactored to a common function
 	const deleteItem = (index) => {
 		updateTodoList(todoList.filter((item, inx) => inx !== index));
 	}
 	const deleteItems = () => {
 		updateTodoList(todoList.filter((item) => !item.completed));
 	}
-	//TODO: following functions contains a pattern that could be refactored to a common function
 	const completeItem = (index, checked) => {
 		updateTodoList(todoList.map((item, inx) => {
 			return inx === index ? { label: item.label, completed: checked, editing: false } : item
@@ -55,10 +66,24 @@ const SetupTodos = () => {
 	}
 	const stopEditingItem = (index, event) => {
 		if (event.key === 'Enter') {
-			updateTodoList(todoList.map((item, inx) => {
-				return inx === index ? { label: item.label, completed: item.completed, editing: false } : item;
-			}));
+			if (event.target.value === '') {
+				deleteItem(index);
+			} else {
+				updateTodoList(todoList.map((item, inx) => {
+					return inx === index ? { label: item.label, completed: item.completed, editing: false } : item;
+				}));
+			}
 		}
+	}
+	const saveOnBlur = (index, event) => {
+		console.log('saveOnBlur' ,index)
+		if (event.target.value === '') {
+			deleteItem(index);
+		} else {
+			updateTodoList(todoList.map((item, inx) => {
+				return { label: item.label, completed: item.completed, editing: false };
+			}));
+		}		
 	}
 	const updateFilterState = (selectedFilter) => {
 		setFilterState(selectedFilter);
@@ -76,14 +101,17 @@ const SetupTodos = () => {
 			stopEditingItem,
 			updateFilterState,
 			deleteItems,
-			completeAllItems
+			completeAllItems,
+			saveOnBlur
 		}];
 }
 
 const TodoItem = (props) => {
 	//Don't like this nested ternary, they tend to be hard to follow
 	return (
-		<li className={props.editing ? "editing" : props.completed ? "completed" : null}>
+		<li className={props.editing ? "editing" : props.completed ? "completed" : null}
+		
+		>
 			<div className="view">
 				<input className="toggle"
 					type="checkbox"
@@ -95,7 +123,9 @@ const TodoItem = (props) => {
 			<input className="edit"
 				value={props.label}
 				onChange={props.editCallback}
-				onKeyPress={props.stopEditingItem} />
+				onKeyPress={props.stopEditingItem}
+				autoFocus={props.editing ? true : null} onBlur={props.onBlurCallback}
+				 />
 		</li>
 	)
 }
@@ -140,17 +170,20 @@ function App() {
 			stopEditingItem,
 			updateFilterState,
 			deleteItems,
-			completeAllItems 
+			completeAllItems,
+			saveOnBlur 
 		}
 	] = SetupTodos();
 	//console.log('todoList', todoList)
 	const numActiveTodos = todoList.filter((item) => !item.completed).length;
+	const focusAddTodo = !todoList.filter((item) => item.editing).length
+	console.log('focusAddTodo', focusAddTodo ? true : null)
 	return (
 		<>
 			<section className="todoapp">
 				<header className="header">
 					<h1>todos</h1>
-					<input className="new-todo" placeholder="What needs to be done?" onKeyPress={addTodoItem} autoFocus />
+					<input autoFocus={focusAddTodo ? true : null} className="new-todo" placeholder="What needs to be done?" onKeyPress={addTodoItem}  />
 				</header>
 				{/* <!-- This section should be hidden by default and shown when there are todos --> **/}
 				
@@ -181,14 +214,13 @@ function App() {
 									completeCallback={(event) => completeItem(id, event.target.checked)}
 									selectCallback={() => selectToEditItem(id)}
 									editCallback={(event) => editItem(id, event)}
-									stopEditingItem={(event) => stopEditingItem(id, event)} />
+									stopEditingItem={(event) => stopEditingItem(id, event)}
+									onBlurCallback={(event) => saveOnBlur(id, event)} />
 							})
 						}
 
 					</ul>
 				</section>
-
-			</section>
 			<FilterFooter filterState={filterState}
 						filterEnum={filterEnum}
 						filterCallback={updateFilterState}
@@ -196,6 +228,8 @@ function App() {
 						clearCompleted={deleteItems}
 						shouldDisplay={todoList.length > 0 ? true : false}
 						 />
+			</section>
+
 			<footer className="info">
 				<p>Double-click to edit a todo</p>
 			</footer>
