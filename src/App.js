@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import '../node_modules/todomvc-app-css/index.css';
+import { TodoItem } from './components/TodoItem';
+import { FilterFooter } from './components/FilterFooter';
+import { Header } from './components/Header';
 const serializedLocalstorage = JSON.parse(localStorage.getItem('todoJSON'));
-const initialTodosState = !!serializedLocalstorage ? serializedLocalstorage : [] ;
-/*
-useRef(() => {
-	const addTodoInput = useRef("type here");
-	console.log("the Ref: ", addTodoInput);
-});
-*/
+const initialTodosState = !!serializedLocalstorage ? serializedLocalstorage : [];
+
 const SetupTodos = () => {
 	const [todoList, updateTodoList] = useState(initialTodosState);
 	useEffect(() => {
-		localStorage.setItem('todoJSON', JSON.stringify(todoList));
+		//Don't save editable state
+		const todoListNoEdit = todoList.map((item) => {
+			return { label: item.label, completed: item.completed, editing: false }
+		})
+		localStorage.setItem('todoJSON', JSON.stringify(todoListNoEdit));
 	});
 
 	const filterEnum = {
@@ -47,9 +49,8 @@ const SetupTodos = () => {
 	}
 	const completeAllItems = () => {
 		const allItemsCompleted = todoList.filter((item) => !item.completed).length === 0 ? false : true;
-		console.log('allItemsCompleted', allItemsCompleted)
-		updateTodoList(todoList.map((item) => { 
-			return {label: item.label, completed: allItemsCompleted, editing: item.editing}
+		updateTodoList(todoList.map((item) => {
+			return { label: item.label, completed: allItemsCompleted, editing: item.editing }
 		}));
 	}
 	const selectToEditItem = (index) => {
@@ -76,14 +77,13 @@ const SetupTodos = () => {
 		}
 	}
 	const saveOnBlur = (index, event) => {
-		console.log('saveOnBlur' ,index)
 		if (event.target.value === '') {
 			deleteItem(index);
 		} else {
 			updateTodoList(todoList.map((item, inx) => {
 				return { label: item.label, completed: item.completed, editing: false };
 			}));
-		}		
+		}
 	}
 	const updateFilterState = (selectedFilter) => {
 		setFilterState(selectedFilter);
@@ -106,57 +106,14 @@ const SetupTodos = () => {
 		}];
 }
 
-const TodoItem = (props) => {
-	//Don't like this nested ternary, they tend to be hard to follow
-	return (
-		<li className={props.editing ? "editing" : props.completed ? "completed" : null}
-		
-		>
-			<div className="view">
-				<input className="toggle"
-					type="checkbox"
-					checked={props.completed}
-					onClick={props.completeCallback} />
-				<label onDoubleClick={props.selectCallback}>{props.label}</label>
-				<button className="destroy" onClick={props.deleteCallback}></button>
-			</div>
-			<input className="edit"
-				value={props.label}
-				onChange={props.editCallback}
-				onKeyPress={props.stopEditingItem}
-				autoFocus={props.editing ? true : null} onBlur={props.onBlurCallback}
-				 />
-		</li>
-	)
-}
-
-const FilterFooter = (props) => {
-	/* <!-- This footer should hidden by default and shown when there are todos --> **/
-	return (
-		<footer style={{display: props.shouldDisplay ? 'block' : 'none'}}className="footer">
-			{/* <!-- This should be `0 items left` by default --> **/}
-			<span className="todo-count"><strong>{props.todosActive}</strong> item{props.todosActive !== 1 ? 's': ''} left</span>
-			{/* <!-- Remove this if you don't implement routing --> **/}
-			<ul className="filters">
-				<li>
-					<a onClick={() => props.filterCallback(props.filterEnum.ALL)} className={props.filterState === props.filterEnum.ALL ? "selected" : null} href="#/">All</a>
-				</li>
-				<li>
-					<a onClick={() => props.filterCallback(props.filterEnum.ACTIVE)} className={props.filterState === props.filterEnum.ACTIVE ? "selected" : null} href="#/active">Active</a>
-				</li>
-				<li>
-					<a onClick={() => props.filterCallback(props.filterEnum.COMPLETED)} className={props.filterState === props.filterEnum.COMPLETED ? "selected" : null} href="#/completed">Completed</a>
-				</li>
-			</ul>
-			{/* <!-- Hidden if no completed items are left ↓ --> **/}
-			<button onClick={props.clearCompleted} className="clear-completed">Clear completed</button>
-		</footer>
-	)
-}
-
 function App() {
 
 	//TODO: should hooks intialize on every render? 
+	// below is placeholder for componentdidmount Equivalent
+	// useEffect(() => {
+
+	// }, [])
+
 	const [
 		todoList,
 		filterState,
@@ -171,23 +128,20 @@ function App() {
 			updateFilterState,
 			deleteItems,
 			completeAllItems,
-			saveOnBlur 
+			saveOnBlur
 		}
 	] = SetupTodos();
-	//console.log('todoList', todoList)
+
 	const numActiveTodos = todoList.filter((item) => !item.completed).length;
 	const focusAddTodo = !todoList.filter((item) => item.editing).length
-	console.log('focusAddTodo', focusAddTodo ? true : null)
+
 	return (
 		<>
 			<section className="todoapp">
-				<header className="header">
-					<h1>todos</h1>
-					<input autoFocus={focusAddTodo ? true : null} className="new-todo" placeholder="What needs to be done?" onKeyPress={addTodoItem}  />
-				</header>
+
 				{/* <!-- This section should be hidden by default and shown when there are todos --> **/}
-				
-				<section className="main" style={{display: todoList.length === 0 ? 'none' : 'block'}}>
+				<Header inputKeyCallback={addTodoItem} focusAddTodo={focusAddTodo}/>
+				<section className="main" style={{ display: todoList.length === 0 ? 'none' : 'block' }}>
 					<input onClick={completeAllItems} id="toggle-all" className="toggle-all" type="checkbox" />
 					<label htmlFor="toggle-all">Mark all as complete</label>
 					<ul className="todo-list">
@@ -221,13 +175,13 @@ function App() {
 
 					</ul>
 				</section>
-			<FilterFooter filterState={filterState}
-						filterEnum={filterEnum}
-						filterCallback={updateFilterState}
-						todosActive={numActiveTodos}
-						clearCompleted={deleteItems}
-						shouldDisplay={todoList.length > 0 ? true : false}
-						 />
+				<FilterFooter filterState={filterState}
+					filterEnum={filterEnum}
+					filterCallback={updateFilterState}
+					todosActive={numActiveTodos}
+					clearCompleted={deleteItems}
+					shouldDisplay={todoList.length > 0 ? true : false}
+				/>
 			</section>
 
 			<footer className="info">
