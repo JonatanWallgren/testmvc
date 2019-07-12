@@ -13,11 +13,10 @@ export const TodoItem = (props) => {
 	return (
 		<li className={props.editing ? "editing" : props.completed ? "completed" : null}>
 			<div className="view">
-				{/* <input className="toggle" type="checkbox" checked={props.completed} onClick={props.completeCallback} /> */}
 				<input className="toggle"
 					type="checkbox"
 					checked={props.completed ? props.completed : false}
-					onClick={props.completeCallback} />
+					onChange={props.completeCallback} />
 				<label onDoubleClick={props.selectCallback}>{props.label}</label>
 				<button className="destroy" onClick={props.deleteCallback}></button>
 			</div>
