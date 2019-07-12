@@ -1,110 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import '../node_modules/todomvc-app-css/index.css';
 import { TodoItem } from './components/TodoItem';
 import { FilterFooter } from './components/FilterFooter';
 import { Header } from './components/Header';
-const serializedLocalstorage = JSON.parse(localStorage.getItem('todoJSON'));
-const initialTodosState = !!serializedLocalstorage ? serializedLocalstorage : [];
+import { SetupTodos } from './SetupTodos';
 
-const SetupTodos = () => {
-	const [todoList, updateTodoList] = useState(initialTodosState);
-	useEffect(() => {
-		//Don't save editable state
-		const todoListNoEdit = todoList.map((item) => {
-			return { label: item.label, completed: item.completed, editing: false }
-		})
-		localStorage.setItem('todoJSON', JSON.stringify(todoListNoEdit));
-	});
-
-	const filterEnum = {
-		'ALL': 'all',
-		'COMPLETED': 'completed',
-		'ACTIVE': 'active'
-	}
-	const [filterState, setFilterState] = useState(filterEnum.ALL);
-
-	const addTodoItem = (event) => {
-		if (event.key !== 'Enter') return;
-		updateTodoList([
-			...todoList,
-			{
-				label: event.target.value,
-				completed: false,
-				editing: false
-			}
-		]);
-	}
-
-	//TODO: following functions contains a pattern that could be refactored to a common function
-	const deleteItem = (index) => {
-		updateTodoList(todoList.filter((item, inx) => inx !== index));
-	}
-	const deleteItems = () => {
-		updateTodoList(todoList.filter((item) => !item.completed));
-	}
-	const completeItem = (index, checked) => {
-		updateTodoList(todoList.map((item, inx) => {
-			return inx === index ? { label: item.label, completed: checked, editing: false } : item
-		}));
-	}
-	const completeAllItems = () => {
-		const allItemsCompleted = todoList.filter((item) => !item.completed).length === 0 ? false : true;
-		updateTodoList(todoList.map((item) => {
-			return { label: item.label, completed: allItemsCompleted, editing: item.editing }
-		}));
-	}
-	const selectToEditItem = (index) => {
-		updateTodoList(todoList.map((item, inx) => {
-			return inx === index ?
-				{ label: item.label, completed: item.completed, editing: true } :
-				{ label: item.label, completed: item.completed, editing: false };
-		}));
-	}
-	const editItem = (index, event) => {
-		updateTodoList(todoList.map((item, inx) => {
-			return inx === index ? { label: event.target.value, completed: item.completed, editing: item.editing } : item;
-		}));
-	}
-	const stopEditingItem = (index, event) => {
-		if (event.key === 'Enter') {
-			if (event.target.value === '') {
-				deleteItem(index);
-			} else {
-				updateTodoList(todoList.map((item, inx) => {
-					return inx === index ? { label: item.label, completed: item.completed, editing: false } : item;
-				}));
-			}
-		}
-	}
-	const saveOnBlur = (index, event) => {
-		if (event.target.value === '') {
-			deleteItem(index);
-		} else {
-			updateTodoList(todoList.map((item, inx) => {
-				return { label: item.label, completed: item.completed, editing: false };
-			}));
-		}
-	}
-	const updateFilterState = (selectedFilter) => {
-		setFilterState(selectedFilter);
-	}
-	return [
-		todoList,
-		filterState,
-		filterEnum,
-		{
-			addTodoItem,
-			deleteItem,
-			completeItem,
-			selectToEditItem,
-			editItem,
-			stopEditingItem,
-			updateFilterState,
-			deleteItems,
-			completeAllItems,
-			saveOnBlur
-		}];
-}
 
 function App() {
 
@@ -140,7 +40,7 @@ function App() {
 			<section className="todoapp">
 
 				{/* <!-- This section should be hidden by default and shown when there are todos --> **/}
-				<Header inputKeyCallback={addTodoItem} focusAddTodo={focusAddTodo}/>
+				<Header inputKeyCallback={addTodoItem} focusAddTodo={focusAddTodo} />
 				<section className="main" style={{ display: todoList.length === 0 ? 'none' : 'block' }}>
 					<input onClick={completeAllItems} id="toggle-all" className="toggle-all" type="checkbox" />
 					<label htmlFor="toggle-all">Mark all as complete</label>
